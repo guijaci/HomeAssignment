@@ -8,10 +8,8 @@ import me.guijaci.ebanx.homeassignment.banking.model.EventResultDto
 import me.guijaci.ebanx.homeassignment.banking.service.IBankingService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.Mockito.`when`
-import org.mockito.Mockito.doThrow
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
@@ -22,7 +20,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.util.*
-
 
 @WebMvcTest(BankingController::class)
 internal class BankingControllerTest {
@@ -45,17 +42,9 @@ internal class BankingControllerTest {
     }
 
     @Test
-    fun `'POST reset' must return 500 on unexpected server error`() {
-        doThrow(RuntimeException("Server Error")).`when`(service).reset()
-        mockMvc.perform(post("/reset"))
-            .andDo(print())
-            .andExpect(status().isInternalServerError)
-    }
-
-    @Test
     fun `'GET balance' not found`() {
         `when`(service.getBalance(anyLong())).thenReturn(Optional.empty())
-        mockMvc.perform(get("/balance?account_id=${random.nextLong()}"))
+        mockMvc.perform(get("/balance").param("account_id", random.nextLong().toString()))
             .andDo(print())
             .andExpect(status().isNotFound)
             .andExpect(content().json("0"))
@@ -65,18 +54,10 @@ internal class BankingControllerTest {
     fun `'GET balance' returns balance`() {
         val balance = random.nextLong()
         `when`(service.getBalance(anyLong())).thenReturn(Optional.of(balance))
-        mockMvc.perform(get("/balance?account_id=${random.nextLong()}"))
+        mockMvc.perform(get("/balance").param("account_id", random.nextLong().toString()))
             .andDo(print())
             .andExpect(status().isOk)
             .andExpect(content().json("$balance"))
-    }
-
-    @Test
-    fun `'GET balance' must return 500 on unexpected server error`() {
-        `when`(service.getBalance(anyLong())).thenThrow(Exception("Server Error"))
-        mockMvc.perform(get("/balance?account_id=${random.nextLong()}"))
-            .andDo(print())
-            .andExpect(status().isInternalServerError)
     }
 
     @Test
@@ -88,7 +69,6 @@ internal class BankingControllerTest {
         )
             .andDo(print())
             .andExpect(status().isBadRequest)
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
     }
 
     @Test
@@ -98,11 +78,12 @@ internal class BankingControllerTest {
             AccountDetailsDto(depositEvent.destination, random.nextInt().toLong() + depositEvent.amount)
         val depositResultDto = EventResultDto.DepositResult(destinationAccount)
         val requestBody = mapper.write(depositEvent)
-        `when`(service.processEvent(any())).thenReturn(Optional.of(depositResultDto))
+        `when`(service.processEvent(depositEvent))
+            .thenReturn(Optional.of(depositResultDto))
         mockMvc.perform(
             post("/event")
-                .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody)
+                .contentType(MediaType.APPLICATION_JSON)
         )
             .andDo(print())
             .andExpect(status().isCreated)
@@ -124,7 +105,8 @@ internal class BankingControllerTest {
     fun `'POST event' receive a deposit event for a non existing account`() {
         val depositEvent = EventDto.Deposit(random.nextLong(), random.nextInt().toLong())
         val requestBody = mapper.write(depositEvent)
-        `when`(service.processEvent(any())).thenReturn(Optional.empty())
+        `when`(service.processEvent(depositEvent))
+            .thenReturn(Optional.empty())
         mockMvc.perform(
             post("/event")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -141,7 +123,8 @@ internal class BankingControllerTest {
         val originAccount = AccountDetailsDto(withdrawEvent.origin, random.nextLong() - withdrawEvent.amount)
         val withdrawResultDto = EventResultDto.WithdrawResult(originAccount)
         val requestBody = mapper.write(withdrawEvent)
-        `when`(service.processEvent(any())).thenReturn(Optional.of(withdrawResultDto))
+        `when`(service.processEvent(withdrawEvent))
+            .thenReturn(Optional.of(withdrawResultDto))
         mockMvc.perform(
             post("/event")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -165,9 +148,10 @@ internal class BankingControllerTest {
 
     @Test
     fun `'POST event' receive a withdraw event for a non existing account`() {
-        val depositEvent = EventDto.Withdraw(random.nextLong(), random.nextInt().toLong())
-        val requestBody = mapper.write(depositEvent)
-        `when`(service.processEvent(any())).thenReturn(Optional.empty())
+        val withdraw = EventDto.Withdraw(random.nextLong(), random.nextInt().toLong())
+        val requestBody = mapper.write(withdraw)
+        `when`(service.processEvent(withdraw))
+            .thenReturn(Optional.empty())
         mockMvc.perform(
             post("/event")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -187,7 +171,8 @@ internal class BankingControllerTest {
             AccountDetailsDto(transferEvent.destination, random.nextInt().toLong() + transferEvent.amount)
         val transferResultDto = EventResultDto.TransferResult(originAccount, destinationAccount)
         val requestBody = mapper.write(transferEvent)
-        `when`(service.processEvent(any())).thenReturn(Optional.of(transferResultDto))
+        `when`(service.processEvent(transferEvent))
+            .thenReturn(Optional.of(transferResultDto))
         mockMvc.perform(
             post("/event")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -210,7 +195,7 @@ internal class BankingControllerTest {
             .andExpect(jsonPath("$.origin.amount").exists())
             .andExpect(jsonPath("$.origin.amount").isNumber)
             .andReturn().response.contentAsString.let { response ->
-                assertEquals(transferEvent, mapper.read<EventResultDto.TransferResult>(response))
+                assertEquals(transferResultDto, mapper.read<EventResultDto.TransferResult>(response))
             }
     }
 
@@ -218,7 +203,8 @@ internal class BankingControllerTest {
     fun `'POST event' receive a transfer event for a non existing account`() {
         val transferEvent = EventDto.Transfer(random.nextLong(), random.nextLong(), random.nextInt().toLong())
         val requestBody = mapper.write(transferEvent)
-        `when`(service.processEvent(any())).thenReturn(Optional.empty())
+        `when`(service.processEvent(transferEvent))
+            .thenReturn(Optional.empty())
         mockMvc.perform(
             post("/event")
                 .contentType(MediaType.APPLICATION_JSON)

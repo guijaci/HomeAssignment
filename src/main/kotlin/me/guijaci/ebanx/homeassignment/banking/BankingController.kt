@@ -18,7 +18,7 @@ class BankingController {
     }
 
     @GetMapping("/balance")
-    fun getBalance(@RequestParam accountId: Long): ResponseEntity<*>{
+    fun getBalance(@RequestParam("account_id") accountId: Long): ResponseEntity<*>{
         throw NotImplementedException()
     }
 

@@ -13,8 +13,8 @@ sealed class EventResultDto(@JsonIgnore val type: String) {
     ) : EventResultDto(TYPE_WITHDRAW)
 
     data class TransferResult(
-        val destination: AccountDetailsDto,
         val origin: AccountDetailsDto,
+        val destination: AccountDetailsDto,
     ) : EventResultDto(TYPE_TRANSFER)
 
     companion object {

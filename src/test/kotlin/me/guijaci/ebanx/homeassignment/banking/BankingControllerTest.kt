@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.util.*
+import kotlin.math.abs
 
 @WebMvcTest(BankingController::class)
 internal class BankingControllerTest {
@@ -32,7 +33,7 @@ internal class BankingControllerTest {
     @MockBean
     private lateinit var service: IBankingService
 
-    private val random: Random = Random(seed)
+    private val random: Random = Random(RANDOM_SEED)
 
     @Test
     fun `'POST reset' always returns ok`() {
@@ -52,7 +53,7 @@ internal class BankingControllerTest {
 
     @Test
     fun `'GET balance' returns balance`() {
-        val balance = random.nextLong()
+        val balance = abs(random.nextLong())
         `when`(service.getBalance(anyLong())).thenReturn(Optional.of(balance))
         mockMvc.perform(get("/balance").param("account_id", random.nextLong().toString()))
             .andDo(print())
@@ -73,7 +74,7 @@ internal class BankingControllerTest {
 
     @Test
     fun `'POST event' receive a deposit event for a existing account and returns deposit result`() {
-        val depositEvent = EventDto.Deposit(random.nextLong(), random.nextInt().toLong())
+        val depositEvent = EventDto.Deposit(random.nextLong(), abs(random.nextInt().toLong()))
         val destinationAccount =
             AccountDetailsDto(depositEvent.destination, random.nextInt().toLong() + depositEvent.amount)
         val depositResultDto = EventResultDto.DepositResult(destinationAccount)
@@ -103,7 +104,7 @@ internal class BankingControllerTest {
 
     @Test
     fun `'POST event' receive a deposit event for a non existing account`() {
-        val depositEvent = EventDto.Deposit(random.nextLong(), random.nextInt().toLong())
+        val depositEvent = EventDto.Deposit(random.nextLong(), abs(random.nextInt().toLong()))
         val requestBody = mapper.write(depositEvent)
         `when`(service.processEvent(depositEvent))
             .thenReturn(Optional.empty())
@@ -119,7 +120,7 @@ internal class BankingControllerTest {
 
     @Test
     fun `'POST event' receive a withdraw event for a existing account and returns withdraw result`() {
-        val withdrawEvent = EventDto.Withdraw(random.nextLong(), random.nextInt().toLong())
+        val withdrawEvent = EventDto.Withdraw(random.nextLong(), abs(random.nextInt().toLong()))
         val originAccount = AccountDetailsDto(withdrawEvent.origin, random.nextLong() - withdrawEvent.amount)
         val withdrawResultDto = EventResultDto.WithdrawResult(originAccount)
         val requestBody = mapper.write(withdrawEvent)
@@ -148,7 +149,7 @@ internal class BankingControllerTest {
 
     @Test
     fun `'POST event' receive a withdraw event for a non existing account`() {
-        val withdraw = EventDto.Withdraw(random.nextLong(), random.nextInt().toLong())
+        val withdraw = EventDto.Withdraw(random.nextLong(), abs(random.nextInt().toLong()))
         val requestBody = mapper.write(withdraw)
         `when`(service.processEvent(withdraw))
             .thenReturn(Optional.empty())
@@ -165,7 +166,7 @@ internal class BankingControllerTest {
 
     @Test
     fun `'POST event' receive a transfer event for a existing account and returns transfer result`() {
-        val transferEvent = EventDto.Transfer(random.nextLong(), random.nextLong(), random.nextInt().toLong())
+        val transferEvent = EventDto.Transfer(random.nextLong(), random.nextLong(), abs(random.nextInt().toLong()))
         val originAccount = AccountDetailsDto(transferEvent.origin, random.nextLong() - transferEvent.amount)
         val destinationAccount =
             AccountDetailsDto(transferEvent.destination, random.nextInt().toLong() + transferEvent.amount)
@@ -201,7 +202,7 @@ internal class BankingControllerTest {
 
     @Test
     fun `'POST event' receive a transfer event for a non existing account`() {
-        val transferEvent = EventDto.Transfer(random.nextLong(), random.nextLong(), random.nextInt().toLong())
+        val transferEvent = EventDto.Transfer(random.nextLong(), random.nextLong(), abs(random.nextInt().toLong()))
         val requestBody = mapper.write(transferEvent)
         `when`(service.processEvent(transferEvent))
             .thenReturn(Optional.empty())
@@ -217,7 +218,7 @@ internal class BankingControllerTest {
 
 
     companion object {
-        private const val seed = 8615929364366092972L
+        private const val RANDOM_SEED = 8615929364366092972L
 
         private inline fun <reified T> ObjectMapper.write(obj: T) =
             writerFor(jacksonTypeRef<T>()).writeValueAsString(obj)

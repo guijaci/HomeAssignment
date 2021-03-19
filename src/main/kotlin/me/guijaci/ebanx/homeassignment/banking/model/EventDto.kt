@@ -6,23 +6,26 @@ import com.fasterxml.jackson.annotation.JsonTypeName
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
     include = JsonTypeInfo.As.PROPERTY,
-    property = "type")
+    property = "type",
+    defaultImpl = EventDto.Unknown::class)
 sealed class EventDto(val type: String) {
 
+    class Unknown: EventDto("")
+
     @JsonTypeName(TYPE_DEPOSIT)
-    data class DepositDto(
+    data class Deposit(
         val destination: Long,
         val amount: Long,
     ) : EventDto(TYPE_DEPOSIT)
 
     @JsonTypeName(TYPE_WITHDRAW)
-    data class WithdrawDto(
+    data class Withdraw(
         val origin: Long,
         val amount: Long,
     ) : EventDto(TYPE_WITHDRAW)
 
     @JsonTypeName(TYPE_TRANSFER)
-    data class TransferDto(
+    data class Transfer(
         val origin: Long,
         val destination: Long,
         val amount: Long,

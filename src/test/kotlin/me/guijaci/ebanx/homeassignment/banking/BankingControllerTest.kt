@@ -6,6 +6,8 @@ import me.guijaci.ebanx.homeassignment.banking.model.AccountDetailsDto
 import me.guijaci.ebanx.homeassignment.banking.model.EventDto
 import me.guijaci.ebanx.homeassignment.banking.model.EventResultDto
 import me.guijaci.ebanx.homeassignment.banking.service.IBankingService
+import me.guijaci.ebanx.homeassignment.read
+import me.guijaci.ebanx.homeassignment.write
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyLong
@@ -80,7 +82,7 @@ internal class BankingControllerTest {
         val depositResultDto = EventResultDto.DepositResult(destinationAccount)
         val requestBody = mapper.write(depositEvent)
         `when`(service.processEvent(depositEvent))
-            .thenReturn(Optional.of(depositResultDto))
+            .thenReturn(Optional.of(mapper.write(depositResultDto)))
         mockMvc.perform(
             post("/event")
                 .content(requestBody)
@@ -95,8 +97,8 @@ internal class BankingControllerTest {
             .andExpect(jsonPath("$.destination").isMap)
             .andExpect(jsonPath("$.destination.id").exists())
             .andExpect(jsonPath("$.destination.id").isNumber)
-            .andExpect(jsonPath("$.destination.amount").exists())
-            .andExpect(jsonPath("$.destination.amount").isNumber)
+            .andExpect(jsonPath("$.destination.balance").exists())
+            .andExpect(jsonPath("$.destination.balance").isNumber)
             .andReturn().response.contentAsString.let { response ->
                 assertEquals(depositResultDto, mapper.read<EventResultDto.DepositResult>(response))
             }
@@ -125,7 +127,7 @@ internal class BankingControllerTest {
         val withdrawResultDto = EventResultDto.WithdrawResult(originAccount)
         val requestBody = mapper.write(withdrawEvent)
         `when`(service.processEvent(withdrawEvent))
-            .thenReturn(Optional.of(withdrawResultDto))
+            .thenReturn(Optional.of(mapper.write(withdrawResultDto)))
         mockMvc.perform(
             post("/event")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -140,8 +142,8 @@ internal class BankingControllerTest {
             .andExpect(jsonPath("$.origin").isMap)
             .andExpect(jsonPath("$.origin.id").exists())
             .andExpect(jsonPath("$.origin.id").isNumber)
-            .andExpect(jsonPath("$.origin.amount").exists())
-            .andExpect(jsonPath("$.origin.amount").isNumber)
+            .andExpect(jsonPath("$.origin.balance").exists())
+            .andExpect(jsonPath("$.origin.balance").isNumber)
             .andReturn().response.contentAsString.let { response ->
                 assertEquals(withdrawResultDto, mapper.read<EventResultDto.WithdrawResult>(response))
             }
@@ -173,7 +175,7 @@ internal class BankingControllerTest {
         val transferResultDto = EventResultDto.TransferResult(originAccount, destinationAccount)
         val requestBody = mapper.write(transferEvent)
         `when`(service.processEvent(transferEvent))
-            .thenReturn(Optional.of(transferResultDto))
+            .thenReturn(Optional.of(mapper.write(transferResultDto)))
         mockMvc.perform(
             post("/event")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -187,14 +189,14 @@ internal class BankingControllerTest {
             .andExpect(jsonPath("$.destination").isMap)
             .andExpect(jsonPath("$.destination.id").exists())
             .andExpect(jsonPath("$.destination.id").isNumber)
-            .andExpect(jsonPath("$.destination.amount").exists())
-            .andExpect(jsonPath("$.destination.amount").isNumber)
+            .andExpect(jsonPath("$.destination.balance").exists())
+            .andExpect(jsonPath("$.destination.balance").isNumber)
             .andExpect(jsonPath("$.origin").exists())
             .andExpect(jsonPath("$.origin").isMap)
             .andExpect(jsonPath("$.origin.id").exists())
             .andExpect(jsonPath("$.origin.id").isNumber)
-            .andExpect(jsonPath("$.origin.amount").exists())
-            .andExpect(jsonPath("$.origin.amount").isNumber)
+            .andExpect(jsonPath("$.origin.balance").exists())
+            .andExpect(jsonPath("$.origin.balance").isNumber)
             .andReturn().response.contentAsString.let { response ->
                 assertEquals(transferResultDto, mapper.read<EventResultDto.TransferResult>(response))
             }
@@ -219,11 +221,5 @@ internal class BankingControllerTest {
 
     companion object {
         private const val RANDOM_SEED = 8615929364366092972L
-
-        private inline fun <reified T> ObjectMapper.write(obj: T) =
-            writerFor(jacksonTypeRef<T>()).writeValueAsString(obj)
-
-        private inline fun <reified T> ObjectMapper.read(serialized: String) =
-            readerFor(jacksonTypeRef<T>()).readValue<T>(serialized)
     }
 }

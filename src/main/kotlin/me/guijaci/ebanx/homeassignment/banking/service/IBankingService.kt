@@ -10,12 +10,12 @@ interface IBankingService {
 
     fun getBalance(accountId: Long): Optional<Long>
 
-    fun processEvent(event: EventDto): Optional<out EventResultDto>
+    fun processEvent(event: EventDto): Optional<String>
 
-    fun deposit(event: EventDto.Deposit): Optional<EventResultDto.DepositResult>
+    fun deposit(event: EventDto.Deposit): Optional<String>
 
-    fun withdraw(event: EventDto.Withdraw): Optional<EventResultDto.WithdrawResult>
+    fun withdraw(event: EventDto.Withdraw): Optional<String>
 
-    fun transfer(event: EventDto.Transfer): Optional<EventResultDto.TransferResult>
+    fun transfer(event: EventDto.Transfer): Optional<String>
 
 }

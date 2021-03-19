@@ -1,8 +1,11 @@
 package me.guijaci.ebanx.homeassignment.banking.service
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import me.guijaci.ebanx.homeassignment.banking.model.AccountDetailsDto
 import me.guijaci.ebanx.homeassignment.banking.model.EventDto
 import me.guijaci.ebanx.homeassignment.banking.model.EventResultDto
+import me.guijaci.ebanx.homeassignment.read
+import me.guijaci.ebanx.homeassignment.write
 import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.Assertions.*
@@ -17,6 +20,9 @@ internal class BankingServiceTest {
 
     @Autowired
     lateinit var service: IBankingService
+
+    @Autowired
+    lateinit var mapper: ObjectMapper
 
     private val random: Random = Random(RANDOM_SEED)
 
@@ -52,7 +58,7 @@ internal class BankingServiceTest {
         val depositResult = service.processEvent(EventDto.Deposit(id, amount))
         assert(depositResult.isPresent) { "Deposit failed for $id" }
         assertEquals(
-            depositResult.get(),
+            mapper.read<EventResultDto.DepositResult>(depositResult.get()),
             EventResultDto.DepositResult(AccountDetailsDto(id, amount))
         )
     }
@@ -70,7 +76,7 @@ internal class BankingServiceTest {
         val withdrawResult = service.processEvent(EventDto.Withdraw(id, amountWithdrawn))
         assert(withdrawResult.isPresent) { "Tried to withdraw from $id after deposit, but no funds found. \n Result from deposit: ${depositResult.get()}" }
         assertEquals(
-            withdrawResult.get(),
+            mapper.read<EventResultDto.WithdrawResult>(withdrawResult.get()),
             EventResultDto.WithdrawResult(AccountDetailsDto(id, amountBefore - amountWithdrawn))
         )
     }
@@ -89,7 +95,7 @@ internal class BankingServiceTest {
         val transferResult = service.processEvent(EventDto.Transfer(origin, destination, amountTransferred))
         assert(transferResult.isPresent) { "Transfer of $amountTransferred from $origin to $destination failed" }
         assertEquals(
-            transferResult.get(),
+            mapper.read<EventResultDto.TransferResult>(transferResult.get()),
             EventResultDto.TransferResult(
                 AccountDetailsDto(origin, amountBefore - amountTransferred),
                 AccountDetailsDto(destination, amountTransferred)
